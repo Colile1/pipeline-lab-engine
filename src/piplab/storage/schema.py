@@ -99,6 +99,10 @@ COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("fold_scores_json", "TEXT", "the raw per-fold arrays; SQLite has no array type"),
     ("n_features_in", "INTEGER", "after encoding expansion"),
     ("n_features_selected", "INTEGER", "so selection's effect is measured, not inferred"),
+    ("k_fraction", "REAL",
+     "share of features the k-based selectors keep. Its own column rather "
+     "than folded into the selection level, so analysis can group by "
+     "technique and by k independently"),
 
     # --- dataset characteristics, copied so trends need no join ---
     ("task_type", "TEXT", "classification | regression"),

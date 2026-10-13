@@ -1,0 +1,22 @@
+# Selection at k = 0.75 of the input features.
+#
+# The v2 selection arm found every technique costs accuracy, but could
+# not say whether SELECTION hurts or whether keeping HALF hurts: k was
+# fixed at 0.5. This sweep repeats the k-based filters at 0.75 so the
+# two can be separated. k = 0.5 is already recorded in
+# ofat_selection_v2, so the three together give k = 0.25 / 0.5 / 0.75.
+#
+# "none" and "lasso" are excluded on purpose: k does not apply to the
+# baseline or to embedded selection, which picks its own count, so
+# re-running them would only duplicate existing rows.
+name: ofat_selection_k75
+vary: selection
+techniques: [chi2, mutual_info, rfe]
+datasets: [iris, wine, sonar, heart-c, ionosphere, colic, breast_cancer, wdbc, credit-approval, pima, credit-g, digits, autoMpg, diabetes, energy-efficiency, concrete, abalone, cpu_small, kin8nm]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+  k_fraction: 0.75
+outputs_dir: outputs/

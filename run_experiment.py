@@ -121,6 +121,7 @@ def _run_one(db, batch_id, config, environment, fingerprint, X, y,
                 inner_k=config.evaluation.inner_k,
                 holdout_repeats=config.evaluation.holdout_repeats,
                 test_size=config.evaluation.split.test,
+                k_fraction=config.evaluation.k_fraction,
                 dataset=dataset,
             )
         usage = monitor.usage()
@@ -156,6 +157,7 @@ def _run_one(db, batch_id, config, environment, fingerprint, X, y,
         "fold_scores_json": encode_fold_scores(result.per_fold),
         "n_features_in": result.n_features_in,
         "n_features_selected": result.n_features_selected,
+        "k_fraction": config.evaluation.k_fraction,
         "tuning_budget": result.tuning_budget,
         "tuning_best_params": (str(result.tuning_best_params)
                                if result.tuning_best_params else None),

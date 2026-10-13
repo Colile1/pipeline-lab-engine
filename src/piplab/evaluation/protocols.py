@@ -174,13 +174,15 @@ def evaluate(
     holdout_repeats: int = 30,
     test_size: float = 0.15,
     dataset: str = "",
+    k_fraction: float = selection.DEFAULT_K_FRACTION,
 ) -> EvaluationResult:
     """Score one fully-resolved configuration.
 
     Inputs: X, y - the dataset; task; levels - one technique per
     component; model - a model key; seed; protocol - "kfold" or
     "repeated_holdout"; cv_k/inner_k/holdout_repeats/test_size - protocol
-    parameters; dataset - name, for error messages.
+    parameters; dataset - name, for error messages; k_fraction - the
+    share of features the k-based selectors keep, recorded per run.
     Output: an EvaluationResult with per-fold scores, their mean and sd,
     the fold hash, and the feature/tuning details the run record needs.
     Raises: ProtocolError when a protocol cannot honestly be applied.
@@ -201,7 +203,8 @@ def evaluate(
     roles = column_roles(X)
     metrics = metrics_for(task)
     splitter = make_splitter(task, protocol, n_splits=n_splits, seed=seed, test_size=test_size)
-    base = build_pipeline(levels=levels, model=model, roles=roles, task=task, seed=seed)
+    base = build_pipeline(levels=levels, model=model, roles=roles,
+                          task=task, seed=seed, k_fraction=k_fraction)
 
     tuning_level = levels.get("tuning", "none")
     inner_cv = None

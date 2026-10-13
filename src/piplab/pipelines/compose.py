@@ -65,16 +65,19 @@ class LateResolvedSelector(BaseEstimator, TransformerMixin):
     for the run record (n_features_in_, n_features_selected_).
     """
 
-    def __init__(self, level: str, task: str, seed: int):
+    def __init__(self, level: str, task: str, seed: int,
+                 k_fraction: float = selection.DEFAULT_K_FRACTION):
         self.level = level
         self.task = task
         self.seed = seed
+        self.k_fraction = k_fraction
 
     def fit(self, X, y=None):
         """Resolve k from X's real width, then fit the underlying selector."""
         n_features = X.shape[1]
         self.inner_ = selection.make_selector(
-            self.level, task=self.task, seed=self.seed, n_features=n_features
+            self.level, task=self.task, seed=self.seed,
+            n_features=n_features, k_fraction=self.k_fraction,
         )
         self.n_features_in_ = int(n_features)
         if self.inner_ == "passthrough":
@@ -99,6 +102,7 @@ def build_pipeline(
     task: str,
     seed: int,
     instrument: bool = False,
+    k_fraction: float = selection.DEFAULT_K_FRACTION,
 ) -> Pipeline:
     """Compose the pipeline for one fully-resolved configuration.
 
@@ -152,7 +156,9 @@ def build_pipeline(
 
     pre = ColumnTransformer(transformers, remainder="drop")
 
-    selector = LateResolvedSelector(levels["selection"], task=task, seed=seed)
+    selector = LateResolvedSelector(
+        levels["selection"], task=task, seed=seed, k_fraction=k_fraction
+    )
     if instrument:
         selector = FitSpy(selector, "selector")
 

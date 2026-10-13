@@ -41,6 +41,13 @@ PROTOCOLS = ("kfold", "repeated_holdout")
 HOLDOUT_MIN_ROWS = 4000
 DEFAULT_HOLDOUT_REPEATS = 30
 
+# Share of features the k-based selectors (chi2, mutual_info, rfe) keep.
+# Declared here, not imported from components.selection, because this
+# module must stay free of sklearn: the dashboard reads it under an
+# interpreter that deliberately lacks the engine's dependencies.
+# components.selection re-exports this value and a test pins them equal.
+DEFAULT_K_FRACTION = 0.5
+
 
 class ConfigError(ValueError):
     """Raised when an experiment config is malformed; message names the field."""
@@ -75,6 +82,9 @@ class EvaluationConfig:
     cv_k: int = DEFAULT_CV_K
     inner_k: int = DEFAULT_INNER_K
     holdout_repeats: int = DEFAULT_HOLDOUT_REPEATS
+    # Share of features the k-based selectors keep. Recorded per run so
+    # "selection hurts" can be told apart from "keeping half hurts".
+    k_fraction: float = DEFAULT_K_FRACTION
     split: SplitConfig = field(default_factory=SplitConfig)
 
 
@@ -171,7 +181,11 @@ def _parse_evaluation(raw: dict) -> EvaluationConfig:
     """
     if not isinstance(raw, dict):
         raise ConfigError("config field evaluation must be a mapping")
-    _reject_unknown(raw, {"protocol", "cv_k", "inner_k", "holdout_repeats", "split"}, "evaluation.")
+    _reject_unknown(
+        raw,
+        {"protocol", "cv_k", "inner_k", "holdout_repeats", "k_fraction", "split"},
+        "evaluation.",
+    )
 
     protocol = raw.get("protocol", "kfold")
     if protocol not in PROTOCOLS:
@@ -183,10 +197,19 @@ def _parse_evaluation(raw: dict) -> EvaluationConfig:
     repeats = _require_int(
         raw, "holdout_repeats", minimum=2, default=DEFAULT_HOLDOUT_REPEATS, where="evaluation."
     )
+    k_fraction = raw.get("k_fraction", DEFAULT_K_FRACTION)
+    valid_number = (
+        isinstance(k_fraction, (int, float)) and not isinstance(k_fraction, bool)
+    )
+    if not valid_number or not 0 < float(k_fraction) <= 1:
+        raise ConfigError(
+            "config field evaluation.k_fraction must be a number in (0, 1], "
+            f"got {k_fraction!r}"
+        )
     split = _parse_split(raw.get("split") or {}, protocol)
     return EvaluationConfig(
         protocol=protocol, cv_k=cv_k, inner_k=inner_k,
-        holdout_repeats=repeats, split=split,
+        holdout_repeats=repeats, k_fraction=float(k_fraction), split=split,
     )
 
 

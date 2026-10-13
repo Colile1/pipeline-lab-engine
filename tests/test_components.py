@@ -215,3 +215,61 @@ def test_lasso_still_works_on_a_binary_target():
     y = pd.Series(rng.integers(0, 2, size=60))
     selector = selection.make_selector("lasso", "classification", 671, X.shape[1])
     selector.fit(X, y)
+
+
+# --- selection: k is configurable, not hardcoded at half -----------------
+# The first selection sweep found every technique cost accuracy, but could
+# not say whether selection hurts or whether keeping HALF the features
+# hurts, because resolve_k was fixed at 0.5 everywhere. k_fraction makes
+# the two separable.
+
+
+@pytest.mark.parametrize("fraction,expected", [(0.25, 15), (0.5, 30), (0.75, 45)])
+def test_k_fraction_changes_how_many_features_survive(fraction, expected):
+    rng = np.random.default_rng(671)
+    X = pd.DataFrame(rng.random(size=(80, 60)), columns=[f"f{i}" for i in range(60)])
+    y = pd.Series(rng.integers(0, 2, size=80))
+    selector = selection.make_selector(
+        "chi2", "classification", 671, X.shape[1], k_fraction=fraction
+    )
+    selector.fit(X, y)
+    assert int(selector.get_support().sum()) == expected
+
+
+def test_k_fraction_defaults_to_the_declared_half():
+    """Omitting it must reproduce the behaviour every recorded run used."""
+    rng = np.random.default_rng(671)
+    X = pd.DataFrame(rng.random(size=(40, 20)), columns=[f"f{i}" for i in range(20)])
+    y = pd.Series(rng.integers(0, 2, size=40))
+    default = selection.make_selector("chi2", "classification", 671, X.shape[1])
+    explicit = selection.make_selector(
+        "chi2", "classification", 671, X.shape[1], k_fraction=0.5
+    )
+    default.fit(X, y)
+    explicit.fit(X, y)
+    assert (default.get_support() == explicit.get_support()).all()
+
+
+def test_the_k_default_has_one_source_of_truth():
+    """config declares it; selection re-exports it. If they drifted, a
+    sweep's recorded k_fraction would not match what actually ran."""
+    from piplab.config import DEFAULT_K_FRACTION as declared
+
+    assert selection.DEFAULT_K_FRACTION is declared
+
+
+def test_lasso_ignores_k_fraction_because_it_chooses_its_own_count():
+    """Embedded selection is data-driven; k does not apply to it. This is
+    why lasso sat near zero in the sweep while the filters all lost."""
+    rng = np.random.default_rng(671)
+    X = pd.DataFrame(rng.normal(size=(80, 10)), columns=[f"f{i}" for i in range(10)])
+    y = pd.Series(rng.integers(0, 2, size=80))
+    quarter = selection.make_selector(
+        "lasso", "classification", 671, X.shape[1], k_fraction=0.25
+    )
+    three_quarters = selection.make_selector(
+        "lasso", "classification", 671, X.shape[1], k_fraction=0.75
+    )
+    quarter.fit(X, y)
+    three_quarters.fit(X, y)
+    assert (quarter.get_support() == three_quarters.get_support()).all()

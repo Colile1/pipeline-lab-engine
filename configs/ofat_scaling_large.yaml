@@ -1,0 +1,22 @@
+# Scaling on the three datasets over 20,000 rows: the only ones that
+# can speak to SQ3, whether preprocessing effects are moderated by
+# sample size.
+#
+# SVM IS EXCLUDED, deliberately. A single adult SVM fit exceeded 600
+# CPU-seconds and was abandoned once; it is roughly O(n^2) and these
+# are 22,784 to 48,842 rows. The other three models are linear or
+# near-linear in rows, so this sweep is hours rather than days.
+#
+# That means the SVM, the model with by far the largest scaling effect,
+# has no large-dataset evidence. It is a stated gap, not an oversight:
+# answering it needs hardware this project does not have.
+name: ofat_scaling_large
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets: [house_16H, bank-marketing, adult]
+models: [logreg, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

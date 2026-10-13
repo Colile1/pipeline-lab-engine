@@ -64,7 +64,8 @@ class _MinFeatures(BaseEstimator, TransformerMixin):
 
 # Chapter 1 does not fix k, so a proportion of the input features is
 # used and the resolved count is recorded per run (n_features_selected).
-DEFAULT_K_FRACTION = 0.5
+# Single source of truth is piplab.config, which imports no sklearn.
+from piplab.config import DEFAULT_K_FRACTION  # noqa: E402
 
 
 def resolve_k(n_features: int, fraction: float = DEFAULT_K_FRACTION) -> int:
@@ -77,7 +78,7 @@ def resolve_k(n_features: int, fraction: float = DEFAULT_K_FRACTION) -> int:
     return max(1, min(n_features, int(round(n_features * fraction))))
 
 
-def _none(task: str, seed: int, n_features: int):
+def _none(task: str, seed: int, n_features: int, k_fraction: float = DEFAULT_K_FRACTION):
     """Return the no-selection baseline (sklearn's identity step)."""
     return "passthrough"
 
@@ -105,7 +106,7 @@ def _chi2_or_f_classif(X, y):
     return chi2(X, y)
 
 
-def _chi2(task: str, seed: int, n_features: int):
+def _chi2(task: str, seed: int, n_features: int, k_fraction: float = DEFAULT_K_FRACTION):
     """Return a chi-square selector.
 
     chi2 requires non-negative features and a classification target.
@@ -115,19 +116,19 @@ def _chi2(task: str, seed: int, n_features: int):
     rather than failing the whole sweep.
     """
     score_func = _chi2_or_f_classif if task == "classification" else f_regression
-    return SelectKBest(score_func=score_func, k=resolve_k(n_features))
+    return SelectKBest(score_func=score_func, k=resolve_k(n_features, k_fraction))
 
 
-def _mutual_info(task: str, seed: int, n_features: int):
+def _mutual_info(task: str, seed: int, n_features: int, k_fraction: float = DEFAULT_K_FRACTION):
     """Return a mutual-information selector, task-appropriate."""
     if task == "classification":
         score_func = lambda X, y: mutual_info_classif(X, y, random_state=seed)
     else:
         score_func = lambda X, y: mutual_info_regression(X, y, random_state=seed)
-    return SelectKBest(score_func=score_func, k=resolve_k(n_features))
+    return SelectKBest(score_func=score_func, k=resolve_k(n_features, k_fraction))
 
 
-def _rfe(task: str, seed: int, n_features: int):
+def _rfe(task: str, seed: int, n_features: int, k_fraction: float = DEFAULT_K_FRACTION):
     """Return recursive feature elimination around a shallow tree.
 
     A decision tree is used as the RFE estimator because it is cheap and
@@ -136,10 +137,10 @@ def _rfe(task: str, seed: int, n_features: int):
     """
     base = (DecisionTreeClassifier(random_state=seed) if task == "classification"
             else DecisionTreeRegressor(random_state=seed))
-    return RFE(estimator=base, n_features_to_select=resolve_k(n_features))
+    return RFE(estimator=base, n_features_to_select=resolve_k(n_features, k_fraction))
 
 
-def _lasso(task: str, seed: int, n_features: int):
+def _lasso(task: str, seed: int, n_features: int, k_fraction: float = DEFAULT_K_FRACTION):
     """Return LASSO-based (L1) embedded selection.
 
     Classification uses L1-penalised logistic regression; regression uses
@@ -184,20 +185,28 @@ SUBSTITUTIONS = {
 }
 
 
-def make_selector(level: str, task: str, seed: int, n_features: int):
+def make_selector(level: str, task: str, seed: int, n_features: int,
+                  k_fraction: float = DEFAULT_K_FRACTION):
     """Build the feature selector for one technique level.
 
     Inputs: level - a key of SELECTORS; task - "classification" or
     "regression"; seed - the global seed; n_features - input feature
-    count, used to resolve k for the k-based selectors.
+    count, used to resolve k for the k-based selectors; k_fraction - the
+    share of features the k-based selectors keep.
     Output: an unfitted selector, or "passthrough" for the baseline.
     Raises: ValueError naming the valid levels, or an unknown task.
+
+    k_fraction exists because the first selection sweep could not tell
+    "selection hurts" from "keeping half the features hurts": every
+    k-based level kept exactly n/2. Varying it separates the two.
+    It does not affect "none" (passthrough) or "lasso" (embedded, which
+    chooses its own count from the data).
     """
     if level not in SELECTORS:
         raise ValueError(f"unknown selection level {level!r}; valid: {sorted(SELECTORS)}")
     if task not in ("classification", "regression"):
         raise ValueError(f"unknown task {task!r}; valid: classification, regression")
-    return SELECTORS[level](task, seed, n_features)
+    return SELECTORS[level](task, seed, n_features, k_fraction)
 
 
 def substitution_note(level: str, task: str, X=None) -> str | None:
