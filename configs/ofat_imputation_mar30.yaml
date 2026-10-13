@@ -1,0 +1,30 @@
+# Imputation at 30% injected MAR missingness.
+#
+# WHY INJECT. On natural missingness the imputation arm cannot be
+# tested: only 4 of 19 datasets have any gaps, so the other 15 return
+# identical scores for every level, Wilcoxon discards them as ties, and
+# the effective n is 4 against a Holm bar needing 7. Injecting makes all
+# 15 complete datasets informative and lifts the arm to a testable n.
+#
+# The rates and mechanisms match the B2 artefact's design, and the
+# injector is a verified bit-identical port of B2's, so these results
+# are directly comparable with that study rather than merely similar.
+#
+# DATASETS. The 15 registry entries that are complete, under 20,000 rows
+# and have at least two numeric columns. heart-c, credit-approval, colic
+# and autoMpg are excluded because they already carry natural NaN:
+# injecting on top would make the recorded rate untrue. Those four keep
+# their own natural-missingness evidence in ofat_imputation_v2.
+name: ofat_imputation_mar30
+vary: imputation
+techniques: [drop_rows, mean, median, knn]
+datasets: [iris, wine, breast_cancer, digits, diabetes, wdbc, credit-g, pima, ionosphere, sonar, abalone, concrete, energy-efficiency, cpu_small, kin8nm]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+inject:
+  rate: 0.3
+  mechanism: mar
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
