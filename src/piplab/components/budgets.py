@@ -26,6 +26,59 @@ GRIDS: dict[str, dict] = {
 # Random search draws this many candidates; Bayesian runs this many trials.
 DEFAULT_N_ITER = 10
 
+# Continuous search spaces for the RANDOM and BAYESIAN levels.
+#
+# Until 2026-10-13 both levels drew from GRIDS above. Every grid has 4 to
+# 6 candidates and both levels draw 10, so random search exhausted the
+# grid and was identical to grid search on all 56 model-dataset pairs of
+# the first tuning sweep, and Bayesian search was close to exhaustive
+# too. The factor had three tuned levels in name and one in fact.
+#
+# Random and Bayesian now share one space per model at the same budget,
+# which makes them genuinely different from grid and makes random
+# against Bayesian a fair comparison. Grid keeps GRIDS.
+#
+# Pure data, no imports, like everything else in this module:
+#   ("log", low, high)    log-uniform float
+#   ("int", low, high)    uniform integer, both ends inclusive
+#   ("choice", [values])  one of a fixed list
+SPACES: dict[str, dict] = {
+    "logreg": {"model__C": ("log", 1e-3, 1e2)},
+    "svm": {"model__C": ("log", 1e-2, 1e2),
+            "model__gamma": ("log", 1e-4, 1e0)},
+    "random_forest": {"model__n_estimators": ("int", 100, 300),
+                      "model__max_depth": ("choice", [None, 5, 10, 20, 30]),
+                      "model__min_samples_leaf": ("int", 1, 5)},
+    "gradient_boosting": {"model__learning_rate": ("log", 0.01, 0.3),
+                          "model__n_estimators": ("int", 100, 300),
+                          "model__max_depth": ("int", 2, 5)},
+}
+
+
+def space_for(model: str) -> dict:
+    """Return the continuous search space for one model.
+
+    Inputs: model - a model key.
+    Output: the space dict, keyed for a Pipeline step named "model".
+    Raises: ValueError naming the models that have spaces.
+    """
+    if model not in SPACES:
+        raise ValueError(f"no search space for model {model!r}; have: {sorted(SPACES)}")
+    return SPACES[model]
+
+
+def searched_parameters(level: str, model: str) -> list[str]:
+    """Return the parameter names a level searches for a model.
+
+    Grid searches GRIDS; random and Bayesian search SPACES. The evaluator
+    uses this to refuse a search whose parameters the real estimator does
+    not have, whichever level is asked for.
+    """
+    if level == "none":
+        return []
+    source = grid_for(model) if level == "grid" else space_for(model)
+    return sorted(source)
+
 
 def grid_for(model: str) -> dict:
     """Return the hyperparameter grid for one model.

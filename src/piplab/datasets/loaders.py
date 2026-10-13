@@ -70,6 +70,16 @@ REGISTRY: dict[str, DatasetSpec] = {
     # 8,192 rows, cheap for SVR (measured: 18 s and 6 s per k=10 run).
     "cpu_small": DatasetSpec("cpu_small", "openml", "227", "regression"),
     "kin8nm": DatasetSpec("kin8nm", "openml", "189", "regression"),
+    # Added 2026-10-13. The injected imputation arm had 6 complete
+    # regression datasets, one short of the 7 that two Holm-corrected
+    # contrasts need (Wilcoxon floor 0.03125 against a bar of 0.025), and
+    # the tuning arm had 4. These three are complete, all-numeric and
+    # small, so they lift both arms without making the tuning re-run
+    # unaffordable. Chosen on size and shape (5, 9 and 14 features)
+    # before any of them had been scored.
+    "bodyfat": DatasetSpec("bodyfat", "openml", "560", "regression"),
+    "stock": DatasetSpec("stock", "openml", "223", "regression"),
+    "airfoil_self_noise": DatasetSpec("airfoil_self_noise", "openml", "44957", "regression"),
 }
 
 

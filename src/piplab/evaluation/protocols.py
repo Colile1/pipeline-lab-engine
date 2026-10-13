@@ -232,7 +232,8 @@ def evaluate(
         # quietly given a different model: swapping in Ridge would compare
         # a tuned model against a different untuned one.
         available = base.get_params()
-        missing = sorted(p for p in tuning.grid_for(model) if p not in available)
+        missing = [p for p in tuning.searched_parameters(tuning_level, model)
+                   if p not in available]
         if missing:
             estimator_name = type(base.named_steps["model"]).__name__
             raise ProtocolError(

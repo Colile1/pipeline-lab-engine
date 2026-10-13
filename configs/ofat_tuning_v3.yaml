@@ -1,0 +1,27 @@
+# The tuning factor, re-run with distinct levels.
+#
+# In ofat_tuning_v2 "random" was identical to "grid" on all 56
+# model-dataset pairs: every grid has 4 to 6 candidates and random search
+# draws 10, so it exhausted the grid. Bayesian search drew its 10 trials
+# from the same handful of candidates. From 2026-10-13 random and
+# Bayesian share a continuous search space per model at the same budget
+# (components/budgets.py, SPACES), and grid keeps the small grid.
+#
+# A new config name, not an append: the levels mean something different
+# now, so these rows must not be pooled with v2's. v2 stays in the
+# record as it was.
+#
+# Datasets: the 16 used in v2, plus bodyfat, stock and
+# airfoil_self_noise, which take the regression side from 4 datasets to
+# 7, the minimum for three Holm-corrected contrasts.
+name: ofat_tuning_v3
+vary: tuning
+techniques: [none, grid, random, bayesian]
+datasets: [iris, wine, sonar, heart-c, ionosphere, colic, breast_cancer, wdbc, credit-approval, pima, credit-g, digits, autoMpg, diabetes, energy-efficiency, concrete, bodyfat, stock, airfoil_self_noise]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+  inner_k: 3
+outputs_dir: outputs/

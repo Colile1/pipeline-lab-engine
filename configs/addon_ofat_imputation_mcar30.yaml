@@ -1,0 +1,20 @@
+# Adds bodyfat, stock and airfoil_self_noise to ofat_imputation_mcar30.
+#
+# The arm had 6 complete regression datasets, one short of the 7 that
+# two Holm-corrected contrasts need. Same config name on purpose: the
+# store is append-only and the analysis groups by config name, so these
+# rows join the arm without re-running the 15 datasets already recorded.
+# Scoped to the three new datasets only, so no cell is duplicated.
+name: ofat_imputation_mcar30
+vary: imputation
+techniques: [drop_rows, mean, median, knn]
+datasets: [bodyfat, stock, airfoil_self_noise]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+inject:
+  rate: 0.3
+  mechanism: mcar
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

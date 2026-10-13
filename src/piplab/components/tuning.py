@@ -17,10 +17,31 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from piplab.components.budgets import (  # noqa: F401
     DEFAULT_N_ITER,
     GRIDS,
+    SPACES,
     candidate_count,
     fits_per_run,
     grid_for,
+    searched_parameters,
+    space_for,
 )
+
+
+def _scipy_space(model: str) -> dict:
+    """The model's search space as scipy distributions, for random search."""
+    from scipy.stats import loguniform, randint
+
+    out = {}
+    for name, spec in space_for(model).items():
+        kind = spec[0]
+        if kind == "log":
+            out[name] = loguniform(spec[1], spec[2])
+        elif kind == "int":
+            out[name] = randint(spec[1], spec[2] + 1)  # randint's high is exclusive
+        elif kind == "choice":
+            out[name] = list(spec[1])
+        else:
+            raise ValueError(f"unknown space kind {kind!r} for {name}")
+    return out
 
 
 def make_search(level: str, pipeline, model: str, scoring: str, inner_cv, seed: int):
@@ -45,7 +66,7 @@ def make_search(level: str, pipeline, model: str, scoring: str, inner_cv, seed: 
         )
     if level == "random":
         return RandomizedSearchCV(
-            pipeline, param_distributions=grid_for(model), scoring=scoring,
+            pipeline, param_distributions=_scipy_space(model), scoring=scoring,
             cv=inner_cv, n_iter=DEFAULT_N_ITER, random_state=seed, n_jobs=1, refit=True,
         )
     if level == "bayesian":
@@ -56,7 +77,7 @@ def make_search(level: str, pipeline, model: str, scoring: str, inner_cv, seed: 
 
 
 def _make_optuna_search(pipeline, model: str, scoring: str, inner_cv, seed: int):
-    """Build an Optuna-backed search over the same grid.
+    """Build an Optuna-backed search over the model's continuous space.
 
     Kept behind a lazy import so the other three levels run without
     optuna installed, and so a missing dependency produces a clear
@@ -64,7 +85,11 @@ def _make_optuna_search(pipeline, model: str, scoring: str, inner_cv, seed: int)
     """
     try:
         from optuna.integration import OptunaSearchCV
-        from optuna.distributions import CategoricalDistribution
+        from optuna.distributions import (
+            CategoricalDistribution,
+            FloatDistribution,
+            IntDistribution,
+        )
     except ImportError as exc:  # pragma: no cover - environment-dependent
         # OptunaSearchCV is NOT in the optuna package from 4.x onward; it
         # lives in optuna-integration. Saying "pip install optuna" sends
@@ -79,10 +104,17 @@ def _make_optuna_search(pipeline, model: str, scoring: str, inner_cv, seed: int)
             "Grid and random search need nothing extra."
         ) from exc
 
-    distributions = {
-        key: CategoricalDistribution(values)
-        for key, values in grid_for(model).items()
-    }
+    # The SAME space random search draws from, at the same budget, so the
+    # two strategies are compared on equal terms.
+    distributions = {}
+    for key, spec in space_for(model).items():
+        kind = spec[0]
+        if kind == "log":
+            distributions[key] = FloatDistribution(spec[1], spec[2], log=True)
+        elif kind == "int":
+            distributions[key] = IntDistribution(spec[1], spec[2])
+        else:
+            distributions[key] = CategoricalDistribution(list(spec[1]))
     return OptunaSearchCV(
         pipeline, param_distributions=distributions, scoring=scoring,
         cv=inner_cv, n_trials=DEFAULT_N_ITER, random_state=seed, refit=True,

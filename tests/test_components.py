@@ -273,3 +273,54 @@ def test_lasso_ignores_k_fraction_because_it_chooses_its_own_count():
     quarter.fit(X, y)
     three_quarters.fit(X, y)
     assert (quarter.get_support() == three_quarters.get_support()).all()
+
+
+# --- tuning: random and Bayesian search a continuous space ----------------
+# In the first tuning sweep random search equalled grid search on all 56
+# model-dataset pairs, because every grid was smaller than n_iter.
+
+
+@pytest.mark.parametrize("model", ["logreg", "svm", "random_forest", "gradient_boosting"])
+def test_every_search_space_is_larger_than_the_random_budget(model):
+    """The condition that made random == grid must not be able to recur."""
+    size = 1
+    for spec in tuning.space_for(model).values():
+        if spec[0] == "choice":
+            size *= len(spec[1])
+        elif spec[0] == "int":
+            size *= spec[2] - spec[1] + 1
+        else:
+            size = float("inf")  # a continuous range cannot be exhausted
+    assert size > tuning.DEFAULT_N_ITER
+
+
+def test_random_search_no_longer_draws_from_the_grid():
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline
+
+    pipe = Pipeline([("model", LogisticRegression(max_iter=200))])
+    search = tuning.make_search("random", pipe, "logreg", "accuracy", 3, 671)
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(60, 4))
+    y = (X[:, 0] > 0).astype(int)
+    search.fit(X, y)
+    tried = {round(float(p["model__C"]), 10) for p in search.cv_results_["params"]}
+    assert len(tried) == tuning.DEFAULT_N_ITER, "ten distinct draws, not a recycled grid"
+    assert not tried <= set(tuning.grid_for("logreg")["model__C"])
+
+
+def test_grid_search_still_uses_the_small_grid():
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline
+
+    pipe = Pipeline([("model", LogisticRegression(max_iter=200))])
+    search = tuning.make_search("grid", pipe, "logreg", "accuracy", 3, 671)
+    assert search.param_grid == tuning.grid_for("logreg")
+
+
+def test_searched_parameters_follow_the_level():
+    assert tuning.searched_parameters("none", "random_forest") == []
+    assert "model__min_samples_leaf" not in tuning.searched_parameters("grid", "random_forest")
+    assert "model__min_samples_leaf" in tuning.searched_parameters("random", "random_forest")
+    assert (tuning.searched_parameters("random", "svm")
+            == tuning.searched_parameters("bayesian", "svm"))
