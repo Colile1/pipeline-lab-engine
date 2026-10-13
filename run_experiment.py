@@ -17,6 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from piplab.config import ConfigError, load_config  # noqa: E402
 from piplab.datasets import load_dataset  # noqa: E402
+from piplab.datasets.loaders import characterise  # noqa: E402
+from piplab.datasets.missingness import inject_missing  # noqa: E402
 from piplab.evaluation import ProtocolError, evaluate  # noqa: E402
 from piplab.pipelines.compose import resolve_levels  # noqa: E402
 from piplab.provenance import (  # noqa: E402
@@ -79,6 +81,17 @@ def main(argv=None) -> int:
         for dataset in config.datasets:
             try:
                 X, y, characteristics = load_dataset(dataset)
+                if config.inject_rate is not None:
+                    # Blank cells on purpose BEFORE anything else sees the
+                    # data, so every component downstream meets the same
+                    # frame it would have met had the gaps been natural.
+                    # characteristics is re-derived so missing_pct reports
+                    # what the run actually used.
+                    X = inject_missing(
+                        X, config.inject_rate, config.inject_mechanism,
+                        config.seed,
+                    )
+                    characteristics = characterise(X, y, characteristics["task_type"])
             except Exception as exc:  # dataset-level failure affects every run on it
                 for _ in config.models:
                     for _ in config.techniques:
@@ -158,6 +171,8 @@ def _run_one(db, batch_id, config, environment, fingerprint, X, y,
         "n_features_in": result.n_features_in,
         "n_features_selected": result.n_features_selected,
         "k_fraction": config.evaluation.k_fraction,
+        "injected_rate": config.inject_rate,
+        "injected_mechanism": config.inject_mechanism,
         "tuning_budget": result.tuning_budget,
         "tuning_best_params": (str(result.tuning_best_params)
                                if result.tuning_best_params else None),

@@ -114,6 +114,13 @@ COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("n_numeric", "INTEGER", ""),
     ("n_categorical", "INTEGER", ""),
     ("missing_pct", "REAL", "canonical name; b2 calls this missing_pct, prepfx missing_proportion"),
+    ("injected_rate", "REAL",
+     "fraction of numeric cells blanked on purpose before the run, or NULL "
+     "when the dataset was used as it came. Separate from missing_pct, which "
+     "is what the data arrived with: conflating the two would hide whether a "
+     "result came from real or synthetic missingness"),
+    ("injected_mechanism", "TEXT",
+     "mcar | mar | NULL. The mechanism used to place the injected NaNs"),
     ("class_balance", "REAL", "minority/majority; NULL for regression"),
     ("mean_abs_correlation", "REAL", "canonical; b2 calls this mean_abs_corr"),
 

@@ -197,3 +197,47 @@ def test_smoke_config_is_offline_only_so_tests_never_need_a_network():
     from piplab.datasets import offline_names
     cfg = load_config(Path(__file__).resolve().parents[1] / "configs" / "smoke.yaml")
     assert set(cfg.datasets) <= set(offline_names())
+
+
+# --- synthetic missingness: the inject block -----------------------------
+
+
+def test_a_config_without_inject_requests_no_injection():
+    """The default must stay "use the data exactly as it arrived"."""
+    config = parse_config(dict(GOOD))
+    assert config.inject_rate is None
+    assert config.inject_mechanism is None
+
+
+def test_inject_is_parsed_when_given():
+    config = parse_config({**GOOD, "inject": {"rate": 0.15, "mechanism": "mcar"}})
+    assert config.inject_rate == 0.15
+    assert config.inject_mechanism == "mcar"
+
+
+@pytest.mark.parametrize("partial", [{"rate": 0.15}, {"mechanism": "mcar"}])
+def test_half_an_inject_block_is_refused(partial):
+    """Defaulting the missing half would silently change the experiment:
+    neither a rate nor a mechanism has a safe assumption."""
+    with pytest.raises(ConfigError, match="BOTH rate and mechanism"):
+        parse_config({**GOOD, "inject": partial})
+
+
+@pytest.mark.parametrize("rate", [0, 1, 1.5, -0.2, "0.15", True])
+def test_an_impossible_inject_rate_is_refused(rate):
+    with pytest.raises(ConfigError, match="inject.rate"):
+        parse_config({**GOOD, "inject": {"rate": rate, "mechanism": "mcar"}})
+
+
+def test_an_unknown_mechanism_is_refused():
+    with pytest.raises(ConfigError, match="inject.mechanism"):
+        parse_config({**GOOD, "inject": {"rate": 0.15, "mechanism": "mnar"}})
+
+
+def test_an_unknown_inject_field_is_refused():
+    """A typo must fail loudly rather than be silently ignored."""
+    with pytest.raises(ConfigError, match="inject."):
+        parse_config({
+            **GOOD,
+            "inject": {"rate": 0.15, "mechanism": "mcar", "ratio": 0.3},
+        })

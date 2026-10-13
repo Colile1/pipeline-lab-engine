@@ -48,6 +48,11 @@ DEFAULT_HOLDOUT_REPEATS = 30
 # components.selection re-exports this value and a test pins them equal.
 DEFAULT_K_FRACTION = 0.5
 
+# Synthetic missingness mechanisms, matching the B2 artefact so the two
+# studies stay comparable. Declared here, not imported from
+# datasets.missingness, to keep this module free of pandas/numpy.
+MECHANISMS = ("mcar", "mar")
+
 
 class ConfigError(ValueError):
     """Raised when an experiment config is malformed; message names the field."""
@@ -105,7 +110,11 @@ class ExperimentConfig:
     models: tuple[str, ...]
     seed: int
     evaluation: EvaluationConfig
-    outputs_dir: str
+    # Synthetic missingness, for the imputation arm. None means the
+    # dataset is used exactly as it arrived.
+    inject_rate: float | None = None
+    inject_mechanism: str | None = None
+    outputs_dir: str = "outputs/"
 
     def run_count(self) -> int:
         """Return how many (dataset, model, technique) runs this config expands to.
@@ -152,7 +161,7 @@ def parse_config(raw: dict) -> ExperimentConfig:
     """
     _reject_unknown(raw, {
         "name", "vary", "techniques", "baseline", "datasets", "models",
-        "seed", "evaluation", "outputs_dir",
+        "seed", "evaluation", "outputs_dir", "inject",
     }, "")
 
     name = _require_text(raw, "name")
@@ -164,12 +173,55 @@ def parse_config(raw: dict) -> ExperimentConfig:
     seed = _require_int(raw, "seed", minimum=0)
     evaluation = _parse_evaluation(raw.get("evaluation") or {})
     outputs_dir = _require_text(raw, "outputs_dir")
+    inject_rate, inject_mechanism = _parse_inject(raw.get("inject") or {})
 
     return ExperimentConfig(
         name=name, vary=vary, techniques=techniques, baseline=baseline,
         datasets=datasets, models=models, seed=seed,
         evaluation=evaluation, outputs_dir=outputs_dir,
+        inject_rate=inject_rate, inject_mechanism=inject_mechanism,
     )
+
+
+def _parse_inject(raw: dict) -> tuple[float | None, str | None]:
+    """Validate the optional `inject` block.
+
+    Synthetic missingness exists because the imputation arm cannot be
+    tested on naturally missing data alone: only 4 of 19 datasets have
+    any, so the rest tie exactly and the effective n is 4 against a Holm
+    bar needing 7. Injecting makes every dataset informative.
+
+    Inputs: raw - the `inject` mapping, possibly empty.
+    Output: (rate, mechanism), both None when no injection is asked for.
+    Raises: ConfigError naming the offending field. Giving one of the
+    pair without the other is an error rather than a default, because a
+    guessed rate or mechanism would silently change what the experiment
+    measures.
+    """
+    if not raw:
+        return None, None
+    _reject_unknown(raw, {"rate", "mechanism"}, "inject.")
+
+    if "rate" not in raw or "mechanism" not in raw:
+        raise ConfigError(
+            "config block inject needs BOTH rate and mechanism; got "
+            f"{sorted(raw)}. Neither has a safe default: a guessed rate or "
+            "mechanism would change what the experiment measures."
+        )
+    rate = raw["rate"]
+    is_number = isinstance(rate, (int, float)) and not isinstance(rate, bool)
+    if not is_number or not 0 < float(rate) < 1:
+        raise ConfigError(
+            "config field inject.rate must be a number strictly between 0 "
+            f"and 1, got {rate!r}"
+        )
+    mechanism = raw["mechanism"]
+    if mechanism not in MECHANISMS:
+        raise ConfigError(
+            f"config field inject.mechanism must be one of {list(MECHANISMS)}, "
+            f"got {mechanism!r}"
+        )
+    return float(rate), mechanism
 
 
 def _parse_evaluation(raw: dict) -> EvaluationConfig:
