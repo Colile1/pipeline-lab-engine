@@ -209,6 +209,23 @@ def evaluate(
     tuning_level = levels.get("tuning", "none")
     inner_cv = None
     if tuning_level != "none":
+        # The grid is keyed by model NAME, but the estimator behind a name
+        # depends on the task: "logreg" is LinearRegression on a regression
+        # target, which has no C to search. Found 2026-10-13 when the
+        # tuning sweep failed 12 runs with "Invalid parameter 'C'".
+        # Such a run is SKIPPED with the reason, not failed and not
+        # quietly given a different model: swapping in Ridge would compare
+        # a tuned model against a different untuned one.
+        available = base.get_params()
+        missing = sorted(p for p in tuning.grid_for(model) if p not in available)
+        if missing:
+            estimator_name = type(base.named_steps["model"]).__name__
+            raise ProtocolError(
+                f"tuning is not applicable to {model} on a {task} target: "
+                f"the estimator is {estimator_name}, which has no "
+                f"{', '.join(m.split('__')[-1] for m in missing)} to search. "
+                f"The untuned baseline for this model still runs."
+            )
         inner_cv = make_splitter(task, "kfold", n_splits=inner_k, seed=seed + 1)
 
     per_fold: dict[str, list[float]] = {name: [] for name in metrics}

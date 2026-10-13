@@ -52,13 +52,17 @@ MODEL_FACTORIES = {
 # different estimator. The run record stores "logreg" either way, so
 # without this note a reader of lab.db could not tell that a regression
 # row was produced by LinearRegression. It matters for interpretation:
-# LinearRegression is invariant to affine rescaling, so its scaling
-# contrast is necessarily null, and that null is a property of the
-# estimator rather than a finding about the data.
+# LinearRegression is invariant to affine rescaling in exact arithmetic,
+# so its scaling contrast is null on well-conditioned data, and that
+# null is a property of the estimator rather than a finding. It is NOT
+# guaranteed in floating point: on house_16H, whose feature spread is
+# the widest in the registry, scaling lowered RMSE by 7.7% in two
+# separate sweeps. The note below says so rather than overclaiming.
 MODEL_SUBSTITUTIONS = {
     ("logreg", "regression"):
         "logreg -> LinearRegression on a continuous target "
-        "(invariant to affine feature scaling)",
+        "(scale-invariant in exact arithmetic; can still shift on "
+        "badly conditioned data)",
     ("svm", "regression"): "svm -> SVR on a continuous target",
     ("random_forest", "regression"):
         "random_forest -> RandomForestRegressor on a continuous target",

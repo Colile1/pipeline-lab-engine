@@ -332,3 +332,36 @@ def test_result_is_a_dataclass_with_the_run_record_fields():
             "cv_strategy", "n_features_in", "n_features_selected",
             "tuning_budget", "tuning_best_params", "substitution_note",
             "deletion"} <= fields
+
+
+# --- tuning where the named model has nothing to tune ---------------------
+
+
+@pytest.mark.parametrize("level", ["grid", "random"])
+def test_tuning_linear_regression_is_skipped_with_a_reason(small_reg, level):
+    """The grid is keyed by model name, but "logreg" on a regression
+    target is LinearRegression, which has no C. The first tuning sweep
+    failed 12 runs on this. It must be a ProtocolError (recorded as
+    skipped, with the reason), not a crash and not a silent model swap.
+    """
+    X, y = small_reg
+    with pytest.raises(ProtocolError, match="not applicable") as excinfo:
+        evaluate(X=X, y=y, task="regression", levels={**BASE, "tuning": level},
+                 model="logreg", seed=SEED, cv_k=3, dataset="synthetic")
+    assert "LinearRegression" in str(excinfo.value)
+
+
+def test_the_untuned_linear_regression_baseline_still_runs(small_reg):
+    """Non-vacuous: only the tuned levels are refused."""
+    X, y = small_reg
+    result = evaluate(X=X, y=y, task="regression", levels=BASE,
+                      model="logreg", seed=SEED, cv_k=3, dataset="synthetic")
+    assert result.summary
+
+
+def test_tuning_still_applies_to_a_regression_model_that_has_a_grid(small_reg):
+    """The refusal must not spread to models whose grid is valid."""
+    X, y = small_reg
+    result = evaluate(X=X, y=y, task="regression", levels={**BASE, "tuning": "grid"},
+                      model="svm", seed=SEED, cv_k=3, inner_k=2, dataset="synthetic")
+    assert result.tuning_best_params
