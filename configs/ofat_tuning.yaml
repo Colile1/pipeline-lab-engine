@@ -1,0 +1,17 @@
+# configs/ofat_tuning.yaml - the hyperparameter-tuning OFAT sweep.
+# Tuning uses NESTED cross-validation: inner_k selects hyperparameters
+# inside each outer training fold, the outer fold scores the winner on
+# data the inner loop never saw. 10 x 3 = 30 fits per run, so this is
+# the expensive sweep - check the cost estimate before launching.
+# `bayesian` additionally needs optuna in this engine's own .venv.
+name: ofat_tuning
+vary: tuning
+techniques: [none, random, grid]
+datasets: [iris, wine, wdbc]
+models: [logreg, svm]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+  inner_k: 3
+outputs_dir: outputs/

@@ -1,0 +1,19 @@
+# configs/holdout_large.yaml - the SECONDARY protocol.
+# Repeated 70/15/15 holdout, 30 repeats, restricted to datasets with
+# >= 4000 rows where a 15% test set is large enough to mean something.
+# This is a robustness check alongside k-fold, never pooled with it:
+# methodology section 6.1 rejects a SINGLE split, which 30 repeats answers.
+name: holdout_large
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets: [adult, bank-marketing, house_16H, abalone]
+models: [logreg, random_forest]
+seed: 671
+evaluation:
+  protocol: repeated_holdout
+  holdout_repeats: 30
+  split:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+outputs_dir: outputs/

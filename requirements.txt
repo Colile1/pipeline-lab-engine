@@ -1,0 +1,18 @@
+# Pinned to match the versions already proven in this project's
+# environment (sklearn 1.9.0 / scipy 1.17.1 verified 2026-10-09).
+scikit-learn==1.9.0
+pandas==3.0.6
+numpy==2.4.6
+scipy==1.17.1
+pyyaml==6.0.3
+psutil==7.0.0
+pytest==9.1.1
+# Bayesian optimisation (the `bayesian` tuning level) only. Grid and
+# random search need nothing beyond scikit-learn.
+optuna==4.6.0
+# OptunaSearchCV moved out of the optuna package: from 4.x it lives in
+# optuna-integration, so installing optuna alone makes every Bayesian
+# tuning run fail at the lazy import with a misleading 'pip install
+# optuna' message. Found 2026-10-12 by running a real tuning sweep:
+# 4 of 16 runs failed while optuna itself imported fine.
+optuna-integration[sklearn]==5.0.0

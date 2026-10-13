@@ -1,0 +1,31 @@
+# configs/ofat_encoding.yaml - the encoding OFAT sweep.
+#
+# AMENDMENT (PLAN.md section 2b): encoding is a sixth factor here, which
+# the March sources did not specify as a comparison component. onehot is
+# the baseline, so this sweep measures what ordinal and target encoding
+# cost or gain relative to current behaviour.
+#
+# Restricted to datasets that HAVE categorical features: encoding is a
+# no-op on an all-numeric dataset and would report a guaranteed null.
+# Of B2's 12 catalogued datasets, these 8 qualify (concrete,
+# energy-efficiency, house_16H and wdbc are all-numeric).
+#
+# 8 datasets x 4 models x 3 levels = 96 runs - the cheapest sweep.
+name: ofat_encoding
+vary: encoding
+techniques: [onehot, ordinal, target]
+datasets:
+  - colic              # 19 categorical columns
+  - credit-g           # 13
+  - bank-marketing     # 9
+  - credit-approval    # 9
+  - adult              # 8
+  - heart-c            # 7
+  - autoMpg            # 3
+  - abalone            # 1
+models: [logreg, random_forest, svm, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

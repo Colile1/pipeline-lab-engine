@@ -1,0 +1,14 @@
+# configs/ofat_scaling_offline.yaml - the first real OFAT sweep.
+# All four scalers x the five bundled (offline) datasets x two models
+# that differ in scale sensitivity, at the full k=10.
+# 4 x 5 x 2 = 40 runs. Offline so no OpenML fetch can stall it.
+name: ofat_scaling_offline
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets: [iris, wine, breast_cancer, digits, diabetes]
+models: [logreg, svm]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

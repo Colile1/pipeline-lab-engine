@@ -1,0 +1,32 @@
+# Local scaffolding aids (not committed, per git-hygiene). The research
+# narrative they carry is kept in pipeline-lab/docs/PROCESS-LOG.md,
+# which IS committed.
+PROGRESS.md
+CLAUDE.md
+TODO.md
+plans.md
+DECISIONS.md
+.claude/
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Dataset caches: re-downloadable from OpenML, and not research output.
+data/cache/
+
+# Run artefacts. outputs/ is ignored by default, with lab.db as the
+# deliberate EXCEPTION: it is the research record itself, 1,433 runs and
+# 151 minutes of compute. It cannot be regenerated identically on other
+# hardware, because the timings, peak memory and machine fingerprint are
+# part of the data. At 5.8 MB it sits well within what git handles.
+outputs/*
+!outputs/lab.db
+!outputs/v2_programme.log
+
+# Scratch databases anywhere else.
+*.db
+!outputs/lab.db

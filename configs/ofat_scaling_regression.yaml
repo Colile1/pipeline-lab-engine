@@ -1,0 +1,28 @@
+# configs/ofat_scaling_regression.yaml - the regression arm of the
+# scaling sweep, kept separate because the metric differs (RMSE, lower
+# is better) and the statistics must be told so.
+#
+# 8 regression datasets x 4 scalers x 2 models = 64 runs. house_16H
+# (22,784 rows) dominates the SVR cost; the rest are small.
+#
+# cpu_small and kin8nm were added to reach n=8. At n=6 the smallest
+# attainable Wilcoxon p is 0.03125, but Holm tests the smallest of the
+# three contrasts at 0.05/3 = 0.0167, so nothing could be rejected
+# whatever the effect - robust scaling won on 6 of 6 and still could
+# not be reported. Seven is the minimum; eight clears it with margin.
+#
+# NOTE: logreg resolves to LinearRegression here, which is invariant to
+# affine rescaling, so its scaling contrast is necessarily null. That is
+# a property of the estimator, not a finding, and every such row carries
+# a substitution_note saying so.
+name: ofat_scaling_regression
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets: [diabetes, abalone, concrete, energy-efficiency, autoMpg,
+           house_16H, cpu_small, kin8nm]
+models: [logreg, svm]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

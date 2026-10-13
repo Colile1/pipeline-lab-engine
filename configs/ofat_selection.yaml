@@ -1,0 +1,21 @@
+# configs/ofat_selection.yaml - the feature-selection OFAT sweep.
+# This component does not exist in either B1 or B2; it is one of the
+# five Chapter 1 components the simplified artefacts never implemented.
+# All other components sit at their Chapter 1 baselines (drop_rows,
+# none, none, onehot), so any effect is attributable to selection.
+name: ofat_selection
+vary: selection
+techniques: [none, chi2, mutual_info, rfe, lasso]
+datasets:
+  - iris
+  - wine
+  - breast_cancer
+  - wdbc
+  - heart-c
+  - credit-g
+models: [logreg, random_forest, svm, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

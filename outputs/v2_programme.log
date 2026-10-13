@@ -1,0 +1,25 @@
+=== START imputation 19:57:42 ===
+Total runs: 304
+Runs completed: 300
+Runs failed: 0
+Runs skipped: 4
+=== DONE imputation in 2832s ===
+=== START encoding 20:44:53 ===
+Total runs: 228
+Runs completed: 216
+Runs failed: 0
+Runs skipped: 12
+=== DONE encoding in 1632s ===
+=== START scaling 21:12:06 ===
+Total runs: 304
+Runs completed: 288
+Runs failed: 0
+Runs skipped: 16
+=== DONE scaling in 1035s ===
+=== START selection 21:29:21 ===
+Total runs: 380
+Runs completed: 344
+Runs failed: 16
+Runs skipped: 20
+=== DONE selection in 1251s ===
+ALL FOUR SWEEPS COMPLETE

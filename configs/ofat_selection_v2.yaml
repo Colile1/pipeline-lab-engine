@@ -1,0 +1,23 @@
+# ofat_selection_v2: the selection arm of the four non-tuning factors.
+#
+# Written 2026-10-12. Tuning is excluded from this programme: measured on
+# one small dataset it was 90% of the total cost (690 s of 768 s), so the
+# other four factors across many datasets buy far more evidence per hour
+# than tuning on a few.
+#
+# Datasets are every registry entry under 20,000 rows. adult (48,842),
+# bank-marketing (45,211) and house_16H (22,784) are excluded: SVM is
+# roughly O(n^2) and a single adult SVM fit exceeded 600 CPU-seconds here.
+#
+# Five levels, so this is the largest arm. Selection is fitted strictly
+# inside each training fold, proven by the fit-spy tests.
+name: ofat_selection_v2
+vary: selection
+techniques: [none, chi2, mutual_info, rfe, lasso]
+datasets: [iris, wine, sonar, heart-c, ionosphere, colic, breast_cancer, wdbc, credit-approval, pima, credit-g, digits, autoMpg, diabetes, energy-efficiency, concrete, abalone, cpu_small, kin8nm]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

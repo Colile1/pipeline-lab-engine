@@ -1,0 +1,20 @@
+# Repair 1 of 2 for ofat_selection_v2.
+#
+# chi2 on ionosphere failed with "Input X must be non-negative": the
+# scaling baseline is "none", so a dataset with naturally negative
+# features reached chi2 raw. Fixed 2026-10-12 to fall back to f_classif
+# and record the substitution.
+#
+# Scoped to exactly the failed cell so no already-succeeded row is
+# duplicated: analyse.py takes the first matching row per cell, so a
+# duplicate would be picked arbitrarily.
+name: ofat_selection_v2
+vary: selection
+techniques: [chi2]
+datasets: [ionosphere]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

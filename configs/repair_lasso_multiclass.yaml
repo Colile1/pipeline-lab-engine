@@ -1,0 +1,18 @@
+# Repair 2 of 2 for ofat_selection_v2.
+#
+# lasso failed on every multiclass target: liblinear cannot fit a
+# multiclass L1 model. iris and wine are 3-class, digits is 10-class.
+# Fixed 2026-10-12 by switching to the saga solver.
+#
+# Scoped to exactly the failed cells so no already-succeeded row is
+# duplicated.
+name: ofat_selection_v2
+vary: selection
+techniques: [lasso]
+datasets: [iris, wine, digits]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

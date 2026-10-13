@@ -1,0 +1,36 @@
+# configs/ofat_scaling_full.yaml - the real scaling sweep.
+#
+# All 14 classification datasets in the registry x 4 scalers x the two
+# models that differ most in scale sensitivity, at k=10.
+# 4 x 14 x 2 = 112 runs.
+#
+# n=14 datasets is what gives Friedman the power the 5-dataset offline
+# sweep lacked (there, p=0.44 and p=0.61 were power failures, not
+# findings). adult (48,842) and bank-marketing (45,211) dominate the
+# runtime because SVM is roughly O(n^2) - together about 90 minutes of
+# the total - but they are also the only datasets large enough to speak
+# to SQ3, effects moderated by sample size, so they stay in.
+name: ofat_scaling_full
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets:
+  - iris
+  - wine
+  - breast_cancer
+  - digits
+  - wdbc
+  - heart-c
+  - credit-g
+  - credit-approval
+  - colic
+  - pima
+  - ionosphere
+  - sonar
+  - adult
+  - bank-marketing
+models: [logreg, svm]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
