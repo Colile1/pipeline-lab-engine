@@ -131,3 +131,40 @@ def test_scaling_effect_on_wine_is_visible_in_the_record(tmp_path):
     standard = rows[("wine", "standard")]
     assert standard["accuracy_mean"] > none["accuracy_mean"]
     assert standard["wall_seconds"] < none["wall_seconds"]
+
+
+def test_a_skipped_run_still_records_the_settings_it_was_asked_for(tmp_path):
+    """cv_k, k_fraction and the injection fields are known before a run
+    starts. They used to be written only when a run succeeded, so a
+    skipped row could not say at what missing rate it was skipped."""
+    config = tmp_path / "skip.yaml"
+    config.write_text(
+        "name: skipcheck\n"
+        "vary: imputation\n"
+        "techniques: [drop_rows, mean]\n"
+        "datasets: [wine]\n"
+        "models: [logreg]\n"
+        "seed: 671\n"
+        "inject:\n"
+        "  rate: 0.3\n"
+        "  mechanism: mcar\n"
+        "evaluation:\n"
+        "  protocol: kfold\n"
+        "  cv_k: 10\n"
+        f"outputs_dir: {tmp_path.as_posix()}/\n",
+        encoding="utf-8",
+    )
+    db = tmp_path / "lab.db"
+    result = run_cli("--config", str(config), "--db", str(db))
+    assert result.returncode == 0, result.stderr
+
+    with open_db(db) as connection:
+        rows = {r["imputation"]: r for r in read_runs(connection)}
+    # 13 columns at 30% missing leave wine almost no complete rows.
+    assert rows["drop_rows"]["status"] == "skipped"
+    assert rows["mean"]["status"] == "succeeded"
+    for row in rows.values():
+        assert row["cv_k"] == 10
+        assert row["k_fraction"] == 0.5
+        assert row["injected_rate"] == 0.3
+        assert row["injected_mechanism"] == "mcar"

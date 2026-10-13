@@ -161,18 +161,11 @@ def _run_one(db, batch_id, config, environment, fingerprint, X, y,
         "parallel_efficiency": usage.parallel_efficiency,
         **{k: v for k, v in usage.as_dict().items() if k != "n_samples"},
         **result.summary,
-        "cv_k": config.evaluation.cv_k if config.evaluation.protocol == "kfold" else None,
         "cv_strategy": result.cv_strategy,
-        "inner_k": config.evaluation.inner_k if levels.get("tuning") != "none" else None,
-        "holdout_repeats": (config.evaluation.holdout_repeats
-                            if config.evaluation.protocol == "repeated_holdout" else None),
         "fold_assignment_hash": result.fold_assignment_hash,
         "fold_scores_json": encode_fold_scores(result.per_fold),
         "n_features_in": result.n_features_in,
         "n_features_selected": result.n_features_selected,
-        "k_fraction": config.evaluation.k_fraction,
-        "injected_rate": config.inject_rate,
-        "injected_mechanism": config.inject_mechanism,
         "tuning_budget": result.tuning_budget,
         "tuning_best_params": (str(result.tuning_best_params)
                                if result.tuning_best_params else None),
@@ -207,6 +200,19 @@ def _base_row(batch_id, config, environment, fingerprint, dataset, model,
         "dataset": dataset,
         "seed": config.seed,
         "protocol": config.evaluation.protocol,
+        # The settings below are known before a run starts, so they belong
+        # on EVERY row. They used to be written on the success path only,
+        # which left skipped and failed rows with NULL cv_k, k_fraction
+        # and injection fields even though the config stated them: a
+        # reader could not tell at what missing rate a run was skipped.
+        "cv_k": config.evaluation.cv_k if config.evaluation.protocol == "kfold" else None,
+        "inner_k": (config.evaluation.inner_k
+                    if levels.get("tuning", "none") != "none" else None),
+        "holdout_repeats": (config.evaluation.holdout_repeats
+                            if config.evaluation.protocol == "repeated_holdout" else None),
+        "k_fraction": config.evaluation.k_fraction,
+        "injected_rate": config.inject_rate,
+        "injected_mechanism": config.inject_mechanism,
         "split_train": split.train,
         "split_val": split.val,
         "split_test": split.test,

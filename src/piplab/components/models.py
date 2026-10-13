@@ -55,9 +55,15 @@ MODEL_FACTORIES = {
 # LinearRegression is invariant to affine rescaling in exact arithmetic,
 # so its scaling contrast is null on well-conditioned data, and that
 # null is a property of the estimator rather than a finding. It is NOT
-# guaranteed in floating point: on house_16H, whose feature spread is
-# the widest in the registry, scaling lowered RMSE by 7.7% in two
-# separate sweeps. The note below says so rather than overclaiming.
+# guaranteed in practice: on house_16H scaling lowered RMSE by 7.7% in
+# two separate sweeps. The cause was checked directly on 2026-10-13 and
+# is the solver's rank cutoff, not rounding error. One house_16H feature
+# has a standard deviation near 66,000 and the other fifteen are below
+# 0.34, so 7 of the 16 singular values fall under tol (1e-6) times the
+# largest and the least-squares solver discards them: sklearn reports
+# rank 9 of 16 on the raw data and 16 of 16 once scaled. Refitting the
+# raw data with tol=1e-9 restores rank 16 and gives exactly the scaled
+# score. The note below says so rather than overclaiming.
 MODEL_SUBSTITUTIONS = {
     ("logreg", "regression"):
         "logreg -> LinearRegression on a continuous target "
