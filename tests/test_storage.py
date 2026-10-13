@@ -268,3 +268,48 @@ def test_every_provenance_field_has_a_home_in_the_schema():
     names = set(COLUMN_NAMES)
     unhoused = [k for k in env if k not in names]
     assert not unhoused, f"captured but not stored: {unhoused}"
+
+
+def test_a_new_schema_column_is_added_to_an_existing_database(tmp_path):
+    """CREATE TABLE IF NOT EXISTS does nothing to a table that already
+    exists, so adding a schema column would break every write against an
+    older record. k_fraction was added with 1,433 rows already stored.
+
+    The migration must ADD only: existing rows keep their values and the
+    new column reads NULL, which is the honest value for runs that
+    predate the field.
+    """
+    import sqlite3
+
+    from piplab.storage.record import _add_missing_columns
+
+    path = tmp_path / "old.db"
+    with open_db(path) as connection:
+        write_run(connection, minimal_row())
+
+    # Simulate an older database by dropping the newest column.
+    with sqlite3.connect(path) as raw:
+        raw.execute("alter table runs drop column k_fraction")
+        before = raw.execute("select count(*) from runs").fetchone()[0]
+    assert before == 1
+
+    with open_db(path) as connection:
+        columns = {r[1] for r in connection.execute("pragma table_info(runs)")}
+        after = connection.execute("select count(*) from runs").fetchone()[0]
+        nulls = connection.execute(
+            "select count(*) from runs where k_fraction is null"
+        ).fetchone()[0]
+
+    assert "k_fraction" in columns, "the column should have been re-added"
+    assert after == before, "no row may be lost to a migration"
+    assert nulls == 1, "a pre-existing row should read NULL, not a guess"
+
+
+def test_the_migration_is_a_no_op_on_a_current_database(tmp_path):
+    """Non-vacuous: it must not churn a database that is already right."""
+    from piplab.storage.record import _add_missing_columns
+
+    path = tmp_path / "current.db"
+    with open_db(path) as connection:
+        added = _add_missing_columns(connection)
+    assert added == []

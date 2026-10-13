@@ -15,6 +15,7 @@ from pathlib import Path
 
 from piplab.storage.schema import (
     COLUMN_NAMES,
+    COLUMNS,
     STATUSES,
     TABLE,
     create_index_sql,
@@ -48,6 +49,29 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
 
 
+def _add_missing_columns(connection: sqlite3.Connection) -> list[str]:
+    """Add any schema column the existing table lacks.
+
+    CREATE TABLE IF NOT EXISTS does nothing to a table that already
+    exists, so adding a column to the schema would otherwise break every
+    write against an older database. That is not hypothetical: k_fraction
+    was added on 2026-10-12 with 1,433 rows already recorded.
+
+    Only ever ADDS, never drops or retypes, so an older record keeps all
+    its rows and the new column reads NULL for them. NULL is the honest
+    value: those runs predate the field and no setting can be inferred.
+
+    Output: the names of the columns added, for callers that log.
+    """
+    existing = {row[1] for row in connection.execute(f"pragma table_info({TABLE})")}
+    added = []
+    for name, sql_type, _note in COLUMNS:
+        if name not in existing:
+            connection.execute(f"alter table {TABLE} add column {name} {sql_type}")
+            added.append(name)
+    return added
+
+
 @contextmanager
 def open_db(path: str | Path = DEFAULT_DB_PATH):
     """Open the run database, creating the table and indexes if absent.
@@ -63,6 +87,7 @@ def open_db(path: str | Path = DEFAULT_DB_PATH):
         connection.execute(create_table_sql())
         for statement in create_index_sql():
             connection.execute(statement)
+        _add_missing_columns(connection)
         connection.commit()
         yield connection
     finally:
