@@ -365,3 +365,26 @@ def test_tuning_still_applies_to_a_regression_model_that_has_a_grid(small_reg):
     result = evaluate(X=X, y=y, task="regression", levels={**BASE, "tuning": "grid"},
                       model="svm", seed=SEED, cv_k=3, inner_k=2, dataset="synthetic")
     assert result.tuning_best_params
+
+
+def test_a_class_too_small_to_stratify_is_skipped_with_a_reason():
+    """Enough rows overall, but one class below k. sklearn raises a bare
+    ValueError inside the splitter; the first injected sweep recorded
+    that as 4 failures on sonar. It is the same situation as too few
+    rows and must be a ProtocolError, so the run is skipped."""
+    rng = np.random.default_rng(SEED)
+    X = pd.DataFrame(rng.normal(size=(30, 3)), columns=["a", "b", "c"])
+    y = pd.Series([0] * 27 + [1] * 3)
+    with pytest.raises(ProtocolError, match="class with only 3"):
+        evaluate(X=X, y=y, task="classification", levels=BASE,
+                 model="logreg", seed=SEED, cv_k=10, dataset="lopsided")
+
+
+def test_a_small_class_that_still_fits_the_folds_is_evaluated():
+    """Non-vacuous: the check must not refuse a dataset that can be split."""
+    rng = np.random.default_rng(SEED)
+    X = pd.DataFrame(rng.normal(size=(30, 3)), columns=["a", "b", "c"])
+    y = pd.Series([0] * 27 + [1] * 3)
+    result = evaluate(X=X, y=y, task="classification", levels=BASE,
+                      model="logreg", seed=SEED, cv_k=3, dataset="lopsided")
+    assert result.summary

@@ -199,6 +199,21 @@ def evaluate(
             f"{dataset or 'dataset'} has {len(X)} rows, fewer than the {n_splits} folds "
             "requested; cross-validation cannot be performed"
         )
+    elif task == "classification":
+        # Enough rows overall is not enough: stratified k-fold needs every
+        # class to have at least k members. Row deletion on a wide dataset
+        # can leave the row count above k while one class falls below it,
+        # and sklearn then raises deep inside the splitter. Found
+        # 2026-10-13 on sonar at 5% injected MCAR, where drop_rows left
+        # too few of one class. That is the same situation as too few
+        # rows, so it gets the same treatment: skipped, with the reason.
+        smallest = int(y.value_counts().min())
+        if smallest < n_splits:
+            raise ProtocolError(
+                f"{dataset or 'dataset'} has a class with only {smallest} "
+                f"member(s) among its {len(X)} rows, fewer than the {n_splits} "
+                "folds requested; stratified cross-validation cannot be performed"
+            )
 
     roles = column_roles(X)
     metrics = metrics_for(task)
