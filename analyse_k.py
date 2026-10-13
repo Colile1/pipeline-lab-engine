@@ -29,6 +29,10 @@ SOURCES = {
 # Only the k-based filters: "none" is the baseline and "lasso" is
 # embedded, so neither responds to k.
 K_LEVELS = ("chi2", "mutual_info", "rfe")
+# A verdict needs a real dataset set behind every k. Below this, a
+# partially-finished sweep would otherwise yield a confident-looking
+# median computed from two datasets.
+MIN_DATASETS = 8
 
 
 def parse_args(argv=None):
@@ -98,13 +102,25 @@ def main(argv=None):
     verdicts = []
     for model in models:
         for level in K_LEVELS:
+            # Compare on the SAME datasets at every k. A k whose sweep is
+            # still running covers only the datasets it has reached, and
+            # a median over a different set is not comparable: it would
+            # read as an effect of k when it is an effect of which
+            # datasets happened to finish.
+            common = None
+            for k in SOURCES:
+                have = {
+                    dataset for (m, dataset), _ in base.items()
+                    if m == model and (model, dataset, level) in tables[k]
+                }
+                common = have if common is None else (common & have)
+            common = common or set()
+
             cells, medians = [], {}
             for k in sorted(SOURCES):
-                table = tables[k]
                 diffs = [
-                    table[(model, dataset, level)]["score"] - score
-                    for (m, dataset), score in base.items()
-                    if m == model and (model, dataset, level) in table
+                    tables[k][(model, dataset, level)]["score"] - base[(model, dataset)]
+                    for dataset in sorted(common)
                 ]
                 if diffs:
                     med = statistics.median(diffs)
@@ -112,10 +128,22 @@ def main(argv=None):
                     cells.append(f"{med:+12.4f}")
                 else:
                     cells.append(f"{'-':>12}")
-            print(f"{model:20}{level:14}" + "".join(cells))
-            if len(medians) == len(SOURCES):
+            print(f"{model:20}{level:14}" + "".join(cells) + f"{len(common):>7} ds")
+            # Only interpret where every k has a real dataset set behind
+            # it; MIN_DATASETS keeps a two-dataset partial sweep from
+            # producing a confident-looking verdict.
+            if len(medians) == len(SOURCES) and len(common) >= MIN_DATASETS:
                 verdicts.append((model, level, medians))
     print()
+    if not verdicts:
+        covered = {k: len({d for (_, d, lv) in tables[k] if lv in K_LEVELS})
+                   for k in sorted(SOURCES)}
+        print("No model/technique yet has all three k values over at least "
+              f"{MIN_DATASETS} shared datasets.")
+        print(f"datasets reached so far: "
+              + ", ".join(f"k={k:.2f}: {n}" for k, n in covered.items()))
+        print("Re-run once the sweeps finish.")
+        return 0
     interpret(verdicts)
     return 0
 
