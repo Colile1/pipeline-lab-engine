@@ -37,6 +37,18 @@ def parse_args(argv=None):
     p.add_argument("--config", default=None, help="config_name to analyse")
     p.add_argument("--alpha", type=float, default=0.05)
     p.add_argument(
+        "--baseline", default=None,
+        help="compare against this level instead of the component's "
+             "Chapter 1 baseline. Needed where the declared baseline cannot "
+             "serve as a reference: under injected missingness drop_rows is "
+             "skipped on most datasets and, where it runs, is scored on a "
+             "different set of rows from the imputers.",
+    )
+    p.add_argument(
+        "--exclude", action="append", default=[],
+        help="leave a level out of the comparison entirely (repeatable)",
+    )
+    p.add_argument(
         "--complete-only", action="store_true",
         help="drop datasets that lack a score for every level, instead of "
              "reporting nothing. Useful mid-sweep; the printed dataset "
@@ -203,8 +215,14 @@ def main(argv=None):
         raise SystemExit(f"no succeeded runs for config {config_name!r}.")
 
     component = rows[0]["vary"]
-    levels = list(TECHNIQUES[component])
-    baseline = levels[0]
+    levels = [lv for lv in TECHNIQUES[component] if lv not in args.exclude]
+    baseline = args.baseline or levels[0]
+    if baseline not in levels:
+        raise SystemExit(
+            f"baseline {baseline!r} is not among the compared levels {levels}"
+        )
+    # compare_levels reads the baseline by name; keep it first for display.
+    levels = [baseline] + [lv for lv in levels if lv != baseline]
     print(f"config    : {config_name}")
     print(f"varying   : {component}  (baseline: {baseline})")
     print(f"runs      : {len(rows)} succeeded")
