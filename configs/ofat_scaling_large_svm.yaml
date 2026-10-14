@@ -1,0 +1,25 @@
+# SVM scaling on the three large datasets, the evidence gap stated in
+# the log as "needs other hardware" / "days on this machine". Measured
+# directly before launching (one real 90%-train fold per dataset,
+# 2026-10-14):
+#   house_16H (SVR):        20,505 rows, 16 cols  -> 34.1s/fold
+#   bank-marketing (SVC):   40,689 rows, 51 cols  -> 100.6s/fold
+#   adult (SVC):            43,957 rows, 105 cols -> 279.9s/fold
+# Projected 10-fold x 4-scaler cost: ~23 + ~67 + ~187 min = ~4.6 hours,
+# not days. The earlier estimate did not account for one-hot column
+# count driving SVM cost as much as row count (adult has 105 columns
+# after encoding against bank-marketing's 51, on similar row counts).
+#
+# Run alone, not merged into ofat_scaling_large (which already has
+# logreg/random_forest/gradient_boosting for these three datasets):
+# SVM needs its own cost accounting and its own completion check.
+name: ofat_scaling_large_svm
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets: [house_16H, bank-marketing, adult]
+models: [svm]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
