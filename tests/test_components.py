@@ -196,6 +196,28 @@ def test_the_negative_feature_substitution_is_recorded():
     assert selection.substitution_note("chi2", "classification", positive) is None
 
 
+def test_chi2_accepts_sparse_input():
+    """onehot keeps the ColumnTransformer output sparse once a dataset has
+    enough categorical cardinality (adult, bank-marketing). np.asarray
+    cannot cast a csr_matrix and raised "setting an array element with a
+    sequence", failing chi2 on every model for adult. Found 2026-10-14
+    when ofat_selection_large reached it; latent until a dataset this
+    wide was run."""
+    import scipy.sparse as sp
+
+    rng = np.random.default_rng(671)
+    dense = rng.integers(0, 2, size=(60, 8)).astype(float)
+    X = sp.csr_matrix(dense)
+    y = pd.Series(rng.integers(0, 2, size=60))
+
+    selector = selection.make_selector("chi2", "classification", 671, X.shape[1])
+    selector.fit(X, y)  # raised ValueError before
+
+    # The substitution-note path hits the same cast and must not silently
+    # swallow a genuine substitution on sparse input either.
+    assert selection.substitution_note("chi2", "classification", X) is None
+
+
 def test_lasso_selection_handles_a_multiclass_target():
     """liblinear cannot fit multiclass L1 and raised on any 3-class
     target. iris and wine are both 3-class, so this failed 8 runs."""

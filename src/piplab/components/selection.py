@@ -97,10 +97,22 @@ def _chi2_or_f_classif(X, y):
     would contaminate the factor being measured with the factor being
     held fixed. f_classif is the same univariate-filter idea, defined on
     the real line, and the substitution is recorded on the run.
+
+    X arrives as a SPARSE matrix whenever onehot has encoded enough
+    categorical levels to make sklearn keep the ColumnTransformer output
+    sparse -- adult and bank-marketing are the first datasets in the
+    programme with enough categorical cardinality to trigger this.
+    `np.asarray(X, dtype=float)` cannot cast a csr_matrix and raised
+    "setting an array element with a sequence", failing every model on
+    chi2/adult. Found 2026-10-14 when ofat_selection_large reached adult.
+    chi2 and f_classif both accept sparse input directly (chi2 natively;
+    f_classif densifies internally), so the negativity check is done on
+    a dense view without changing what either selector is fitted on.
     """
     import numpy as np
+    import scipy.sparse as sp
 
-    values = np.asarray(X, dtype=float)
+    values = X.toarray() if sp.issparse(X) else np.asarray(X, dtype=float)
     if np.nanmin(values) < 0:
         return f_classif(X, y)
     return chi2(X, y)
@@ -225,9 +237,17 @@ def substitution_note(level: str, task: str, X=None) -> str | None:
     # is negative, which cannot be known from (level, task) alone.
     if level == "chi2" and task == "classification" and X is not None:
         import numpy as np
+        import scipy.sparse as sp
 
         try:
-            values = np.asarray(X, dtype=float)
+            # Sparse whenever onehot has encoded enough categorical levels
+            # to make sklearn keep the ColumnTransformer output sparse
+            # (adult, bank-marketing): np.asarray cannot cast a csr_matrix
+            # and used to fall through the except below, silently
+            # reporting no substitution even when one happened. Densify
+            # explicitly instead of letting the cast fail. Found
+            # 2026-10-14 alongside the same bug in _chi2_or_f_classif.
+            values = X.toarray() if sp.issparse(X) else np.asarray(X, dtype=float)
         except (TypeError, ValueError):
             return None  # non-numeric columns are encoded before chi2 sees them
         if values.size and np.nanmin(values) < 0:
