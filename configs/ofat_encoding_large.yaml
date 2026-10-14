@@ -1,0 +1,27 @@
+# ofat_encoding_selection_large: the one large-dataset gap the scaling arm
+# did not close. ofat_scaling_large (v6) and ofat_scaling_large_svm (v7)
+# gave encoding, selection and tuning no coverage at all on adult,
+# bank-marketing or house_16H, for the same cost reason v2 of each config
+# excluded them: SVM is roughly O(n^2) and a single adult SVM fit measured
+# at ~280 CPU-seconds per fold (ofat_scaling_large_svm log, 2026-10-13/14).
+#
+# Written 2026-10-14. All four models run here, including SVM: measured
+# per-fold costs from the scaling-large-svm sweep (house_16H 34 s,
+# bank-marketing 101 s, adult 280 s) put a full run (10 folds x up to 4
+# non-baseline levels) at a few hours worst case, not days, and nothing
+# here pauses for confirmation.
+#
+# house_16H has zero categorical columns (checked directly), so it is
+# excluded from the encoding arm only: onehot/ordinal/target cannot show
+# an effect on a dataset with nothing to encode. It is included in
+# selection, where it is a normal numeric-feature regression dataset.
+name: ofat_encoding_large
+vary: encoding
+techniques: [onehot, ordinal, target]
+datasets: [adult, bank-marketing]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

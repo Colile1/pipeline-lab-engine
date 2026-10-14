@@ -1,0 +1,16 @@
+# ofat_selection_large: the selection-arm half of the large-dataset gap.
+# See ofat_encoding_selection_large.yaml for the full rationale. Selection
+# has no categorical-column requirement, so all three large datasets are
+# included, unlike the encoding arm.
+#
+# Written 2026-10-14.
+name: ofat_selection_large
+vary: selection
+techniques: [none, chi2, mutual_info, rfe, lasso]
+datasets: [adult, bank-marketing, house_16H]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
