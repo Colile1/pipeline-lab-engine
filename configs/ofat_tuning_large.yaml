@@ -1,0 +1,29 @@
+# ofat_tuning_large: the tuning arm's large-dataset gap, closed in full.
+#
+# Written 2026-10-15. Measured directly before launch (see PROCESS-LOG.md
+# section 4y): one grid-search fit (inner_k=3) on adult took 71.6s
+# (logreg), 1,378.8s (random_forest), 290.9s (gradient_boosting). Scaled
+# to the full design (3 models x 3 tuned levels x the datasets below,
+# 10 outer folds each), this is on the order of a day of compute,
+# dominated by random_forest's grid search. Colile asked for the full
+# design run anyway, explicitly, having seen that number: "I want the
+# full runs for everything... complete que the rest now even if you
+# think it will take days." Nothing here is narrowed or dropped.
+#
+# SVM is excluded: tuning's search space for svm includes gamma, and
+# svm alone on adult already measured at ~280 CPU-seconds per untuned
+# fold (ofat_scaling_large_svm, section 4q); tuning multiplies that by
+# every inner-fold candidate fit, which was never measured and is not
+# included in this run. Large-dataset SVM tuning remains a separate,
+# unestimated open item.
+name: ofat_tuning_large
+vary: tuning
+techniques: [none, grid, random, bayesian]
+datasets: [adult, bank-marketing, house_16H]
+models: [logreg, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+  inner_k: 3
+outputs_dir: outputs/
