@@ -1,0 +1,24 @@
+# addon_tuning: extends the tuning arm with one further regression
+# dataset, forest_fires.
+#
+# Written 2026-10-17. The regression side of this arm held 7 datasets.
+# With 4 compared levels the smallest attainable Holm-adjusted p is
+# (2 / 2^7) * 3 = 0.0469, which is at or above alpha, so a
+# contrast could not be rejected whatever the size of the real effect.
+# An eighth dataset lowers the floor and makes the arm testable.
+#
+# The config name matches the original arm deliberately: these rows
+# belong to that sweep and are analysed with it. Only the new dataset is
+# listed, because the record is append-only and the other datasets are
+# already present.
+name: ofat_tuning_v3
+vary: tuning
+techniques: [none, grid, random, bayesian]
+datasets: [forest_fires]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+  inner_k: 3
+outputs_dir: outputs/

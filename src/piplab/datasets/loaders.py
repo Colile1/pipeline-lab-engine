@@ -80,6 +80,17 @@ REGISTRY: dict[str, DatasetSpec] = {
     "bodyfat": DatasetSpec("bodyfat", "openml", "560", "regression"),
     "stock": DatasetSpec("stock", "openml", "223", "regression"),
     "airfoil_self_noise": DatasetSpec("airfoil_self_noise", "openml", "44957", "regression"),
+    # Added 2026-10-17 to lift the regression arm from 7 datasets to 8.
+    # At 7 datasets with 4 compared levels the smallest attainable
+    # Holm-adjusted p is (2 / 2^7) * 4 = 0.0625, above alpha, so no
+    # selection or tuning contrast on regression could be rejected
+    # whatever the size of the real effect: three Friedman tests at
+    # p < 0.003 produced no surviving comparison for that reason alone.
+    # At 8 datasets the floor is 0.03125 and the arm becomes testable.
+    # forest_fires was chosen on shape before being scored: complete,
+    # moderate in size, and the only regression entry carrying
+    # categorical features, which every other one lacks.
+    "forest_fires": DatasetSpec("forest_fires", "openml", "42363", "regression"),
 }
 
 

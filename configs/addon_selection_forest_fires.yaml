@@ -1,0 +1,23 @@
+# addon_selection: extends the selection arm with one further regression
+# dataset, forest_fires.
+#
+# Written 2026-10-17. The regression side of this arm held 7 datasets.
+# With 5 compared levels the smallest attainable Holm-adjusted p is
+# (2 / 2^7) * 4 = 0.0625, which is at or above alpha, so a
+# contrast could not be rejected whatever the size of the real effect.
+# An eighth dataset lowers the floor and makes the arm testable.
+#
+# The config name matches the original arm deliberately: these rows
+# belong to that sweep and are analysed with it. Only the new dataset is
+# listed, because the record is append-only and the other datasets are
+# already present.
+name: ofat_selection_v2
+vary: selection
+techniques: [none, chi2, mutual_info, rfe, lasso]
+datasets: [forest_fires]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
