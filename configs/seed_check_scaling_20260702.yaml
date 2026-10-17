@@ -1,0 +1,23 @@
+# seed_check_scaling_20260702: the scaling arm repeated under a different
+# random seed.
+#
+# Written 2026-10-17. Every run recorded before this used seed 671, so
+# the headline scaling result (standard scaling beats none for logistic
+# regression, better on 10 of 11 datasets, Holm 0.0410) rested on one
+# fold assignment. This sweep repeats the arm with seed 20260702 so that
+# the result can be reported as holding, or failing to hold, under an
+# independent assignment.
+#
+# A separate config name is used deliberately. The seeds are three
+# independent estimates of the same quantity and must not be pooled
+# into one larger sample, which would misrepresent the design.
+name: seed_check_scaling_20260702
+vary: scaling
+techniques: [none, standard, minmax, robust]
+datasets: [iris, wine, sonar, heart-c, ionosphere, colic, breast_cancer, wdbc, credit-approval, pima, credit-g, digits, autoMpg, diabetes, energy-efficiency, concrete, abalone, cpu_small, kin8nm]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 20260702
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
