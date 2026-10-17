@@ -1,0 +1,29 @@
+# seed_check_imputation_mar15: the mar15 injected imputation sweep
+# repeated under a second random seed.
+#
+# Written 2026-10-17. The imputation arm carries 21 of the programme's
+# rejected contrasts and every one of them rests on seed 671. The
+# scaling replication (PROCESS-LOG 5b) showed that a contrast at this
+# sample size can cross the significance boundary when the fold
+# assignment changes, so the arm carrying most of the findings has to
+# face the same test.
+#
+# Seed 1337 changes both the fold assignment and the injected
+# missingness pattern, which is the stronger test: it asks whether the
+# finding survives a different draw rather than a different split of
+# the same gaps.
+#
+# A separate config name keeps the two seeds from being pooled.
+name: seed_check_imputation_mar15
+vary: imputation
+techniques: [drop_rows, mean, median, knn]
+datasets: [iris, wine, breast_cancer, digits, diabetes, wdbc, credit-g, pima, ionosphere, sonar, abalone, concrete, energy-efficiency, cpu_small, kin8nm, bodyfat, stock, airfoil_self_noise]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 1337
+inject:
+  rate: 0.15
+  mechanism: mar
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

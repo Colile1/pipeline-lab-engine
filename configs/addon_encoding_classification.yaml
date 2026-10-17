@@ -1,0 +1,22 @@
+# addon_encoding_classification: extends the encoding arm with five further
+# classification datasets.
+#
+# Written 2026-10-17. The classification side held 11 datasets. The
+# discreteness floor is not the binding constraint there (at n = 11 it
+# is 0.0039), but stability is: the seed replication in PROCESS-LOG 5b
+# showed that two sign changes move a contrast across alpha while the
+# underlying effect barely moves. Sixteen datasets make the win count
+# less fragile.
+#
+# The config name matches the original arm because these rows belong to
+# that sweep and are analysed with it.
+name: ofat_encoding_v2
+vary: encoding
+techniques: [onehot, ordinal, target]
+datasets: [banknote, blood_transfusion, climate_sim, phoneme, steel_plates]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

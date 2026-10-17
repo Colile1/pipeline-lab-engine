@@ -91,6 +91,21 @@ REGISTRY: dict[str, DatasetSpec] = {
     # moderate in size, and the only regression entry carrying
     # categorical features, which every other one lacks.
     "forest_fires": DatasetSpec("forest_fires", "openml", "42363", "regression"),
+    # Added 2026-10-17 to widen the classification side from 11 datasets
+    # to 16. The constraint here is not the discreteness floor, which at
+    # n = 11 is already 0.0039 and well under alpha. It is stability: the
+    # seed replication (PROCESS-LOG 5b) showed that at 11 datasets two
+    # sign changes move a contrast across the significance threshold
+    # while the underlying effect barely moves. More datasets make the
+    # win count less fragile, which is what that result called for.
+    # All five are complete, binary and numeric, chosen for a spread of
+    # size (540 to 5,404 rows) and width (4 to 33 features) before any
+    # of them had been scored.
+    "banknote": DatasetSpec("banknote", "openml", "1462", "classification"),
+    "blood_transfusion": DatasetSpec("blood_transfusion", "openml", "1464", "classification"),
+    "climate_sim": DatasetSpec("climate_sim", "openml", "1467", "classification"),
+    "phoneme": DatasetSpec("phoneme", "openml", "1489", "classification"),
+    "steel_plates": DatasetSpec("steel_plates", "openml", "1504", "classification"),
 }
 
 
