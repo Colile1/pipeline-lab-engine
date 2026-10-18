@@ -123,6 +123,14 @@ COLUMNS: tuple[tuple[str, str, str], ...] = (
      "mcar | mar | NULL. The mechanism used to place the injected NaNs"),
     ("class_balance", "REAL", "minority/majority; NULL for regression"),
     ("mean_abs_correlation", "REAL", "canonical; b2 calls this mean_abs_corr"),
+    ("feature_scale_ratio", "REAL",
+     "max(std) / median(std) over the numeric features, measured before "
+     "any scaling. Added 2026-10-18 to close the instrumentation gap the "
+     "meta-analysis identified: mean_abs_correlation had been used as a "
+     "proxy for scale disparity and measures nothing of the kind, so the "
+     "house_16H mechanism (one dominant-scale feature pushing singular "
+     "values below the solver's rank cutoff) could not be tested across "
+     "the registry. NULL on rows recorded before this date"),
 
     # --- outcome ---
     ("status", "TEXT NOT NULL", "succeeded | failed | skipped"),

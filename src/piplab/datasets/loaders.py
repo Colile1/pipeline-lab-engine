@@ -192,7 +192,35 @@ def characterise(X: pd.DataFrame, y: pd.Series, task: str) -> dict:
         "missing_pct": round(float(X.isna().to_numpy().mean() * 100.0), 6) if X.size else 0.0,
         "class_balance": balance,
         "mean_abs_correlation": _mean_abs_correlation(numeric),
+        "feature_scale_ratio": _feature_scale_ratio(numeric),
     }
+
+
+def _feature_scale_ratio(numeric: pd.DataFrame) -> float:
+    """Largest feature standard deviation divided by the median one.
+
+    Measures how far one feature's scale dominates the rest, which is
+    the property the house_16H investigation turned on: there one
+    feature has a standard deviation near 66,000 while the other
+    fifteen are below 0.34, and the least-squares solver silently
+    discarded seven of sixteen directions as a result.
+
+    The median is used rather than the minimum so a single
+    near-constant column cannot send the ratio to infinity. Returns
+    1.0 when there are fewer than two numeric features, since a ratio
+    needs something to compare against, and when the median standard
+    deviation is zero.
+    """
+    if numeric.shape[1] < 2:
+        return 1.0
+    sds = numeric.std(numeric_only=True).to_numpy(dtype=float)
+    sds = sds[np.isfinite(sds)]
+    if sds.size < 2:
+        return 1.0
+    median = float(np.median(sds))
+    if median <= 0.0:
+        return 1.0
+    return round(float(sds.max() / median), 6)
 
 
 def _mean_abs_correlation(numeric: pd.DataFrame) -> float:
