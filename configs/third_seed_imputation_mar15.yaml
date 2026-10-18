@@ -1,0 +1,26 @@
+# third_seed_imputation_mar15: the mar15 injected imputation sweep,
+# nine datasets (matching ofat_imputation_mar15 exactly), under a
+# third random seed.
+#
+# Written 2026-10-18. The imputation replication (PROCESS-LOG 5l) used
+# two seeds and found 35 per cent reproduction. The scaling arm's
+# effect-size threshold rests on three seeds (671, 1337, 20260702),
+# which measures a rate across replications rather than a single
+# pass/fail. This sweep adds the third draw at the original
+# nine-dataset size, so it is comparable with 5l rather than with the
+# widened fourteen/eleven-dataset arm being tested separately.
+#
+# A separate config name keeps the three seeds from being pooled.
+name: third_seed_imputation_mar15
+vary: imputation
+techniques: [drop_rows, mean, median, knn]
+datasets: [iris, wine, breast_cancer, digits, diabetes, wdbc, credit-g, pima, ionosphere, sonar, abalone, concrete, energy-efficiency, cpu_small, kin8nm, bodyfat, stock, airfoil_self_noise]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 20260702
+inject:
+  rate: 0.15
+  mechanism: mar
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
