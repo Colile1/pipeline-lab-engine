@@ -169,6 +169,40 @@ def test_deletion_that_empties_a_dataset_is_refused_not_scored():
         apply_row_deletion(X, y, "drop_rows")
 
 
+def test_deletion_that_removes_a_whole_class_is_refused_not_scored():
+    """A class deleted outright must be caught, not scored as perfect.
+
+    Regression test for a bug found 2026-10-19 on climate_sim at 15%
+    injected MAR. The existing guard tested value_counts().min(), which
+    only counts classes that are still PRESENT, so a class removed
+    entirely by row deletion vanished from the tally and the smallest
+    SURVIVING class was checked instead. Three models then raised
+    single-class errors deep inside sklearn and random forest silently
+    "succeeded" with accuracy 1.0 on a one-class problem, which was the
+    worse outcome of the two.
+    """
+    # 12 rows of class 0 survive; every row of class 1 carries a gap.
+    X = pd.DataFrame({
+        "a": [1.0] * 12 + [np.nan] * 6,
+        "b": [2.0] * 12 + [3.0] * 6,
+    })
+    y = pd.Series([0] * 12 + [1] * 6)
+    with pytest.raises(ProtocolError, match="only 1 class"):
+        evaluate(X=X, y=y, task="classification",
+                 levels={**BASE, "imputation": "drop_rows"},
+                 model="random_forest", seed=SEED, cv_k=3, dataset="wiped")
+
+
+def test_a_rare_class_and_an_absent_class_give_different_refusals():
+    """The two failures are distinct and must not be conflated."""
+    X = pd.DataFrame({"a": [float(i) for i in range(12)],
+                      "b": [float(i) * 2 for i in range(12)]})
+    y = pd.Series([0] * 10 + [1] * 2)  # rare but present
+    with pytest.raises(ProtocolError, match="fewer than the 3 folds"):
+        evaluate(X=X, y=y, task="classification", levels=BASE,
+                 model="random_forest", seed=SEED, cv_k=3, dataset="rare")
+
+
 def test_deletion_cost_reaches_the_result(wine):
     X, y = wine
     X = X.copy()

@@ -106,7 +106,26 @@ REGISTRY: dict[str, DatasetSpec] = {
     "climate_sim": DatasetSpec("climate_sim", "openml", "1467", "classification"),
     "phoneme": DatasetSpec("phoneme", "openml", "1489", "classification"),
     "steel_plates": DatasetSpec("steel_plates", "openml", "1504", "classification"),
+    # Added 2026-10-18 as a HELD-OUT set for the pre-registered
+    # confirmation in docs/PREREGISTRATION-HELDOUT.md. These five play
+    # no part in any exploratory arm and must not be added to one: the
+    # whole value of the test is that the hypothesis was fixed, and
+    # committed to git, before any of them had been scored. They were
+    # selected on three stated criteria only (complete, all numeric,
+    # at least 300 rows) and all five met them on first inspection, so
+    # none was dropped or substituted.
+    "diabetes_sylva": DatasetSpec("diabetes_sylva", "openml", "41945", "classification"),
+    "mozilla4": DatasetSpec("mozilla4", "openml", "1046", "classification"),
+    "eeg-eye-state": DatasetSpec("eeg-eye-state", "openml", "1471", "classification"),
+    "wall-robot-nav": DatasetSpec("wall-robot-nav", "openml", "1497", "classification"),
+    "kc1": DatasetSpec("kc1", "openml", "1067", "classification"),
 }
+
+# The held-out five, named so analysis code can exclude them from the
+# exploratory arms without having to remember which they are.
+HELD_OUT: frozenset[str] = frozenset({
+    "diabetes_sylva", "mozilla4", "eeg-eye-state", "wall-robot-nav", "kc1",
+})
 
 
 class DatasetError(RuntimeError):

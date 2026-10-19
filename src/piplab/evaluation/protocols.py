@@ -207,6 +207,26 @@ def evaluate(
         # 2026-10-13 on sonar at 5% injected MCAR, where drop_rows left
         # too few of one class. That is the same situation as too few
         # rows, so it gets the same treatment: skipped, with the reason.
+        #
+        # The surviving-class count is checked FIRST and separately.
+        # value_counts() only counts classes that are still present, so
+        # when deletion removes a class outright it does not appear and
+        # min() reports the smallest SURVIVING class, which can sit well
+        # above n_splits. The guard then passes and sklearn raises three
+        # different single-class errors further in. Found 2026-10-19 on
+        # climate_sim at 15% injected MAR, where the 46-member minority
+        # class (of 540 rows, 8.5%) was deleted entirely: min() returned
+        # 70 against n_splits of 10 and the check did nothing. A rare
+        # class and an absent one are different failures and need
+        # different tests.
+        present = int(y.nunique())
+        if present < 2:
+            raise ProtocolError(
+                f"{dataset or 'dataset'} has only {present} class among its "
+                f"{len(X)} remaining rows: row deletion removed every member "
+                "of the other class(es), so there is nothing to classify. "
+                "Recorded as skipped rather than scored."
+            )
         smallest = int(y.value_counts().min())
         if smallest < n_splits:
             raise ProtocolError(
