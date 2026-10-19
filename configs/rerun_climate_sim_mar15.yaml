@@ -1,0 +1,25 @@
+# Re-run of the climate_sim cells in wide_imputation_mar15_s671.
+#
+# Written 2026-10-19. The deleted-class guard bug (PROCESS-LOG 5s,
+# fixed in 91043ee) meant these four cells were recorded as three
+# sklearn crashes and one false success at accuracy 1.0 on a
+# single-class problem. With the guard fixed they are refused with a
+# stated reason instead.
+#
+# Only climate_sim is listed; every other cell in the parent sweep was
+# scored correctly and is not touched. The config NAME deliberately
+# matches the parent sweep so the corrected rows join it, and the
+# analysis takes the most recent row per cell.
+name: wide_imputation_mar15_s671
+vary: imputation
+techniques: [drop_rows, mean, median, knn]
+datasets: [climate_sim]
+models: [logreg, svm, random_forest, gradient_boosting]
+seed: 671
+inject:
+  rate: 0.15
+  mechanism: mar
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/

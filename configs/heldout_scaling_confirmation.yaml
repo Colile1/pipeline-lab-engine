@@ -1,0 +1,33 @@
+# Held-out confirmation of the scaling result.
+#
+# Pre-registered in docs/PREREGISTRATION-HELDOUT.md, committed to git
+# at 06:54 on 18 October 2026, before any of these five datasets had
+# been scored on any arm of this study.
+#
+# THE PREDICTION. Standard scaling improves support vector machine
+# classification accuracy relative to no scaling, on data that played
+# no part in generating the hypothesis. Falsified if the direction
+# reverses or standard scaling wins on 2 or fewer of the 5 datasets.
+#
+# THE CONTROL. random_forest is included to show the test can tell a
+# real effect from a procedure that finds one everywhere. A tree
+# splits on rank order, so scaling should change nothing, and most
+# cells should return exactly identical scores.
+#
+# ONLY TWO LEVELS. none and standard. minmax and robust are not part
+# of the registered prediction and are deliberately not run, so there
+# is no multiplicity to correct and no opportunity to pick whichever
+# scaler happens to win.
+#
+# Seed 671 and stratified 10-fold match the main study exactly, so the
+# only thing that differs from the 16-dataset result is the data.
+name: heldout_scaling_confirmation
+vary: scaling
+techniques: [none, standard]
+datasets: [diabetes_sylva, mozilla4, eeg-eye-state, wall-robot-nav, kc1]
+models: [svm, random_forest]
+seed: 671
+evaluation:
+  protocol: kfold
+  cv_k: 10
+outputs_dir: outputs/
