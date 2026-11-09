@@ -1,13 +1,3 @@
-# Local scaffolding aids (not committed, per git-hygiene). The research
-# narrative they carry is kept in pipeline-lab/docs/PROCESS-LOG.md,
-# which IS committed.
-PROGRESS.md
-CLAUDE.md
-TODO.md
-plans.md
-DECISIONS.md
-.claude/
-
 __pycache__/
 *.pyc
 .venv/
